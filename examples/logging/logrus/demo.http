@@ -1,0 +1,12 @@
+### get all users
+GET http://localhost:9000/users
+
+### get user by uuid
+GET http://localhost:9000/users/b29f95a2-499a-4079-97f5-ff55c3854fcb
+
+### get user articles
+GET http://localhost:9000/users/b29f95a2-499a-4079-97f5-ff55c3854fcb/articles
+
+### panic) 
+
+GET http://localhost:9000/panic
