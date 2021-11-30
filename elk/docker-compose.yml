@@ -1,0 +1,70 @@
+version: "3.7"
+
+volumes:
+  es01:
+
+services:
+  nginx:
+    image: nginx:1.21.0-alpine
+    # ports:
+    #   - 80:80
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-async-connect: "true"
+        fluentd-address: localhost:24224
+        tag: fluentd
+
+  fluentd:
+    build: 
+      context: fluentd
+    volumes:
+      - ./configs/fluentd/conf:/fluentd/etc
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:7.9.2
+    volumes:
+      - ./configs/apm_elastic/apm-server.docker.yml:/usr/share/apm-server/apm-server.yml:ro
+    environment:
+      - output.elasticsearch.hosts=["elasticsearch:9200"]
+    ports:
+      - "8200:8200"
+
+  es01:
+    # image: docker.elastic.co/elasticsearch/elasticsearch:7.13.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.1
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    volumes:
+      - es01:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+
+  kibana:
+    image: kibana:7.13.1
+    environment:
+      ELASTICSEARCH_URL: http://es01:9200
+      ELASTICSEARCH_HOSTS: http://es01:9200
+    # volumes:
+    #   - ./configs/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+    ports:
+      - "5601:5601"
+
+  pyapp:
+    build:
+      context: ./app/pyapp
+    ports:
+      - 8080:8080
+
+  goapp:
+    build:
+      context: ./app/goapp
+    environment:
+      ELASTIC_APM_SERVICE_NAME: goapp
+      ELASTIC_APM_SERVER_URL: http://apm-server:8200
+    ports:
+      - 8081:8080
